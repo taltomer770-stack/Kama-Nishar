@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#101418">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="כמה נשאר">
+<title>כמה נשאר לי</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<style>
+/* VOICE: calm, private, precise: a personal money tool that feels like a polished banking app
+   IDEA: a monthly pay slip: income at the top, two deductions, the net remainder printed large at the bottom
+   PICTURE: a ring that splits the income into savings, therapy and what's left, with the remainder in its centre
+   COLOUR and TYPE: deep ink #101418 header, white sheet, warm yellow #ffd84a for savings, soft teal for therapy; Heebo 900/400
+   LAYOUT: one centred phone-width column: income, two input tiles, ring + result, per-day breakdown */
+:root{color-scheme:light dark;--bg:light-dark(#eef1f4,#0b0e12);--sheet:light-dark(#ffffff,#161b22);--ink:light-dark(#101418,#eef1f4);--mute:light-dark(#5b6673,#9aa5b1);--line:light-dark(#e3e7eb,#262d35);--field:light-dark(#f5f7f9,#0f1318);--y:#ffd84a;--t:light-dark(#2a9d8f,#4cc9b8);--rest:light-dark(#101418,#eef1f4);--bad:light-dark(#c62828,#ff7b72)}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0;-webkit-tap-highlight-color:transparent}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;overflow-x:clip;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+.app{max-width:480px;margin:0 auto;padding:16px 16px 40px}
+.head{background:#101418;color:#fff;border-radius:24px;padding:22px 22px 26px;position:relative;overflow:hidden}
+.head::after{content:"";position:absolute;inset-inline-start:-40px;top:-60px;width:180px;height:180px;border-radius:50%;border:26px solid var(--y);opacity:.14}
+.head h1{font-size:15px;font-weight:500;margin:0 0 10px;opacity:.75}
+.inc{display:flex;align-items:baseline;gap:8px;border-bottom:2px solid rgba(255,255,255,.25);padding-bottom:6px;transition:border-color .2s}
+.inc:focus-within{border-color:var(--y)}
+.inc span{font-size:28px;font-weight:700;opacity:.8}
+.inc input{background:none;border:0;color:#fff;font:900 clamp(40px,12vw,54px)/1.1 system-ui,-apple-system,Roboto,Arial,sans-serif;width:100%;padding:0;outline:none;direction:ltr;text-align:right}
+.inc input::placeholder{color:rgba(255,255,255,.3)}
+.head p{margin:8px 0 0;font-size:14px;opacity:.65;position:relative}
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
+.tile{background:var(--sheet);border-radius:20px;padding:16px;border:2px solid transparent;transition:border-color .2s}
+.tile:focus-within{border-color:var(--c)}
+.tile .top{display:flex;align-items:center;gap:8px;font-weight:700;font-size:15px}
+.dot{width:12px;height:12px;border-radius:50%;background:var(--c);flex:none}
+.field{display:flex;align-items:baseline;gap:4px;margin-top:10px;background:var(--field);border-radius:12px;padding:6px 12px;min-height:52px}
+.field span{color:var(--mute);font-weight:700}
+.field input{background:none;border:0;color:var(--ink);font:800 26px/1.4 system-ui,-apple-system,Roboto,Arial,sans-serif;width:100%;outline:none;direction:ltr;text-align:right;padding:0}
+.field input::placeholder{color:var(--line)}
+.pct{font-size:13px;color:var(--mute);margin-top:6px;min-height:20px}
+.chips{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.chips button{font:inherit;font-size:13px;font-weight:500;border:1px solid var(--line);background:transparent;color:var(--ink);border-radius:999px;padding:0 10px;min-height:32px;cursor:pointer}
+.chips button:hover,.chips button:focus-visible{border-color:var(--ink);outline:none}
+.sw{display:flex;align-items:center;gap:6px;margin-top:8px;font-size:13px;color:var(--mute);cursor:pointer;min-height:32px}
+.sw input{accent-color:var(--t);width:18px;height:18px;margin:0}
+.sess{display:none;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px}
+.sess.on{display:grid}
+.sess label{font-size:12px;color:var(--mute)}
+.sess input{width:100%;font:700 16px system-ui,-apple-system,Roboto,Arial,sans-serif;color:var(--ink);background:var(--field);border:1px solid var(--line);border-radius:10px;padding:8px;min-height:40px;direction:ltr;text-align:right}
+.result{background:var(--sheet);border-radius:24px;margin-top:12px;padding:22px}
+.ringwrap{display:grid;grid-template-columns:150px minmax(0,1fr);gap:18px;align-items:center}
+.ring{width:150px;height:150px;position:relative}
+.ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.ring circle{fill:none;stroke-width:18;transition:stroke-dasharray .5s ease,stroke-dashoffset .5s ease}
+.ring .c{position:absolute;inset:0;display:grid;place-content:center;text-align:center}
+.ring .c b{font-size:28px;font-weight:900;line-height:1}
+.ring .c small{font-size:12px;color:var(--mute)}
+.lab{font-size:15px;color:var(--mute);margin:0}
+.left{font-size:clamp(38px,11vw,50px);font-weight:900;line-height:1.05;white-space:nowrap;font-variant-numeric:tabular-nums;margin:2px 0 4px}
+.left.neg{color:var(--bad)}
+.msg{font-size:14px;margin:0;color:var(--mute)}
+.msg.neg{color:var(--bad);font-weight:500}
+.lines{margin:20px 0 0;padding:0;list-style:none;border-top:1px solid var(--line)}
+.lines li{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--line);font-size:16px}
+.lines li span{display:flex;align-items:center;gap:8px}
+.lines li b{font-variant-numeric:tabular-nums;white-space:nowrap}
+.lines li.tot{border-bottom:0;font-weight:800;font-size:18px}
+.per{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+.per div{background:var(--field);border-radius:14px;padding:12px 14px}
+.per b{display:block;font-size:22px;font-weight:800;white-space:nowrap;font-variant-numeric:tabular-nums}
+.per small{color:var(--mute);font-size:13px}
+.year{margin-top:12px;background:var(--y);color:#101418;border-radius:14px;padding:12px 14px;font-size:15px}
+.year b{font-weight:800}
+.foot{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:16px;font-size:13px;color:var(--mute)}
+.foot button{font:inherit;font-size:13px;background:none;border:1px solid var(--line);color:var(--mute);border-radius:10px;padding:0 12px;min-height:40px;cursor:pointer}
+@media(max-width:400px){.ringwrap{grid-template-columns:1fr;justify-items:center;text-align:center}.tiles{grid-template-columns:1fr}}
+@media(prefers-reduced-motion:reduce){.ring circle{transition:none}}
+</style>
+</head>
+<body>
+<main class="app">
+  <section class="head">
+    <h1>ההכנסה שלי החודש</h1>
+    <label class="inc"><span>₪</span><input id="income" inputmode="numeric" autocomplete="off" placeholder="0" aria-label="הכנסה חודשית בשקלים"></label>
+    <p>כל מה שנכנס החודש: משכורת, מלגה, עבודות נוספות</p>
+  </section>
+
+  <section class="tiles">
+    <div class="tile" style="--c:var(--y)">
+      <div class="top"><i class="dot"></i>חיסכון</div>
+      <label class="field"><span>₪</span><input id="save" inputmode="numeric" autocomplete="off" placeholder="0" aria-label="סכום לחיסכון בשקלים"></label>
+      <div class="pct" id="saveP"></div>
+      <div class="chips" aria-label="מילוי מהיר לפי אחוז מההכנסה">
+        <button type="button" data-p="10">10%</button><button type="button" data-p="20">20%</button><button type="button" data-p="30">30%</button>
+      </div>
+    </div>
+    <div class="tile" style="--c:var(--t)">
+      <div class="top"><i class="dot"></i>פסיכולוג</div>
+      <label class="field"><span>₪</span><input id="psy" inputmode="numeric" autocomplete="off" placeholder="0" aria-label="הוצאות פסיכולוג בחודש בשקלים"></label>
+      <div class="pct" id="psyP"></div>
+      <label class="sw"><input type="checkbox" id="bySess">חישוב לפי פגישות</label>
+      <div class="sess" id="sess">
+        <label>מחיר לפגישה<input id="price" inputmode="numeric" placeholder="0"></label>
+        <label>פגישות בחודש<input id="count" inputmode="numeric" placeholder="4"></label>
+      </div>
+    </div>
+  </section>
+
+  <section class="result" aria-live="polite">
+    <div class="ringwrap">
+      <div class="ring">
+        <svg viewBox="0 0 160 160" aria-hidden="true">
+          <circle cx="80" cy="80" r="62" stroke="var(--line)"/>
+          <circle id="aRest" cx="80" cy="80" r="62" stroke="var(--rest)" stroke-linecap="butt"/>
+          <circle id="aPsy" cx="80" cy="80" r="62" stroke="var(--t)"/>
+          <circle id="aSave" cx="80" cy="80" r="62" stroke="var(--y)"/>
+        </svg>
+        <div class="c"><b id="restPct">—</b><small>נשאר</small></div>
+      </div>
+      <div>
+        <p class="lab">נשאר לך להוצאות האחרות</p>
+        <div class="left" id="left">₪0</div>
+        <p class="msg" id="msg">הכנס את ההכנסה שלך כדי להתחיל</p>
+      </div>
+    </div>
+
+    <ul class="lines">
+      <li><span>הכנסה</span><b id="lInc">₪0</b></li>
+      <li><span><i class="dot" style="--c:var(--y)"></i>חיסכון</span><b id="lSave">₪0−</b></li>
+      <li><span><i class="dot" style="--c:var(--t)"></i>פסיכולוג</span><b id="lPsy">₪0−</b></li>
+      <li class="tot"><span><i class="dot" style="--c:var(--rest)"></i>נשאר להוצאות אחרות</span><b id="lLeft">₪0</b></li>
+    </ul>
+
+    <div class="per">
+      <div><b id="day">₪0</b><small>ליום להוצאות אחרות</small></div>
+      <div><b id="week">₪0</b><small>לשבוע להוצאות אחרות</small></div>
+    </div>
+    <div class="year" id="year"></div>
+  </section>
+
+  <div class="foot"><span>הנתונים נשמרים רק במכשיר הזה</span><button type="button" id="clear">ניקוי</button></div>
+</main>
+
+<script>
+{
+const $=id=>document.getElementById(id);
+const nf=new Intl.NumberFormat('he-IL',{maximumFractionDigits:0});
+const money=v=>'₪'+nf.format(Math.round(Math.abs(v)));
+const raw=el=>{const n=parseInt(String(el.value).replace(/[^\d]/g,''),10);return isFinite(n)?n:0};
+const KEY='kama-nishar-v1';
+const ids=['income','save','psy','price','count'];
+const C=2*Math.PI*62;
+
+function fmt(el){const n=raw(el);el.value=n?nf.format(n):''}
+function load(){
+  let d=null;try{d=JSON.parse(localStorage.getItem(KEY))}catch(e){}
+  if(!d)return;
+  for(const id of ids)if(d[id])$(id).value=nf.format(d[id]);
+  $('bySess').checked=!!d.bySess;
+}
+function store(){
+  const d={bySess:$('bySess').checked};for(const id of ids)d[id]=raw($(id));
+  try{localStorage.setItem(KEY,JSON.stringify(d))}catch(e){}
+}
+function arc(el,frac,offFrac){
+  const f=Math.max(0,Math.min(1,frac));
+  el.style.strokeDasharray=`${f*C} ${C}`;
+  el.style.strokeDashoffset=`${-offFrac*C}`;
+}
+function calc(){
+  const by=$('bySess').checked;
+  $('sess').classList.toggle('on',by);
+  $('psy').readOnly=by;
+  if(by){const p=raw($('price')),c=$('count').value===''?4:raw($('count'));$('psy').value=p*c?nf.format(p*c):''}
+  const I=raw($('income')),S=raw($('save')),P=raw($('psy')),L=I-S-P;
+  const pc=v=>I?Math.round(v/I*100)+'% מההכנסה':'';
+  $('saveP').textContent=pc(S);$('psyP').textContent=by&&P?`${nf.format(raw($('price')))} × ${$('count').value===''?4:raw($('count'))} פגישות`:pc(P);
+  $('left').textContent=(L<0?'−':'')+money(L);$('left').classList.toggle('neg',L<0);
+  $('lInc').textContent=money(I);$('lSave').textContent=money(S)+'−';$('lPsy').textContent=money(P)+'−';
+  $('lLeft').textContent=(L<0?'−':'')+money(L);
+  const tot=Math.max(I,S+P)||1;
+  const fs=S/tot,fp=P/tot,fr=Math.max(0,L)/tot;
+  arc($('aSave'),fs,0);arc($('aPsy'),fp,fs);arc($('aRest'),fr,fs+fp);
+  $('restPct').textContent=I?Math.max(0,Math.round(L/I*100))+'%':'—';
+  const now=new Date(),dim=new Date(now.getFullYear(),now.getMonth()+1,0).getDate();
+  const okL=Math.max(0,L);
+  $('day').textContent=money(okL/dim);$('week').textContent=money(okL/dim*7);
+  const m=$('msg');m.className='msg';
+  if(!I)m.textContent='הכנס את ההכנסה שלך כדי להתחיל';
+  else if(L<0){m.className='msg neg';m.textContent=`חסרים ${money(L)}. כדאי להקטין את הסכום לחיסכון החודש.`}
+  else if(L===0)m.textContent='כל ההכנסה מחולקת. לא נשאר כסף להוצאות אחרות.';
+  else m.textContent=`יש לך ${money(okL/dim)} ליום לאוכל, יציאות, תחבורה וכל השאר`;
+  $('year').innerHTML=S?`בקצב הזה תחסוך <b>${money(S*12)}</b> בשנה, ו-<b>${money(S*24)}</b> בשנתיים.`:'הכנס סכום לחיסכון כדי לראות כמה תצבור בשנה.';
+  store();
+}
+for(const id of ids){
+  const el=$(id);
+  el.addEventListener('input',()=>{const pos=el.value.length-el.selectionStart;fmt(el);try{const p=Math.max(0,el.value.length-pos);el.setSelectionRange(p,p)}catch(e){}calc()});
+  el.addEventListener('focus',()=>{try{el.select()}catch(e){}});
+}
+$('bySess').addEventListener('change',calc);
+document.querySelectorAll('[data-p]').forEach(b=>b.addEventListener('click',()=>{const I=raw($('income'));if(!I){$('income').focus();return}$('save').value=nf.format(Math.round(I*b.dataset.p/100));calc()}));
+$('clear').addEventListener('click',()=>{for(const id of ids)$(id).value='';$('bySess').checked=false;calc();$('income').focus()});
+load();calc();
+if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceWorker.register('sw.js').catch(()=>{});
+}
+</script>
+</body>
+</html>
